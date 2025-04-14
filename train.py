@@ -216,21 +216,66 @@ def train_ensemble_model(models):
 
 def load_models():
     models = {}
-    model_files = {
-        "text": "models/text_model.joblib",
-        "audio": "models/audio_model.joblib",
-        "image": "models/image_model.joblib",
-        "ensemble": "models/ensemble_model.joblib"
-    }
-    for model_name, model_path in model_files.items():
+    os.makedirs("models", exist_ok=True)
+    
+    # Text model
+    try:
+        if os.path.exists("models/text_model.joblib"):
+            logger.info("Loading text model from file...")
+            models["text"] = joblib.load("models/text_model.joblib")
+        else:
+            logger.warning("Text model file not found, training new model...")
+            models["text"] = TextClassifier(model_type='ensemble', use_bert=bert_available)
+            logger.info("Created new text model with default configuration")
+            joblib.dump(models["text"], "models/text_model.joblib")
+    except Exception as e:
+        logger.error(f"Failed to load text model: {e}")
+        logger.info("Creating new text model instead...")
+        models["text"] = TextClassifier(model_type='ensemble', use_bert=bert_available)
+    
+    # Audio model
+    try:
+        if os.path.exists("models/audio_model.joblib"):
+            logger.info("Loading audio model from file...")
+            models["audio"] = joblib.load("models/audio_model.joblib")
+        else:
+            logger.warning("Audio model file not found, training new model...")
+            models["audio"] = train_audio_model()
+            joblib.dump(models["audio"], "models/audio_model.joblib")
+    except Exception as e:
+        logger.error(f"Failed to load audio model: {e}")
+        logger.info("Training new audio model instead...")
+        models["audio"] = train_audio_model()
+    
+    # Image model
+    try:
+        if os.path.exists("models/image_model.joblib"):
+            logger.info("Loading image model from file...")
+            models["image"] = joblib.load("models/image_model.joblib")
+        else:
+            logger.warning("Image model file not found, training new model...")
+            models["image"] = train_image_model()
+            joblib.dump(models["image"], "models/image_model.joblib")
+    except Exception as e:
+        logger.error(f"Failed to load image model: {e}")
+        logger.info("Training new image model instead...")
+        models["image"] = train_image_model()
+    
+    # Ensemble model - only create if all other models are available
+    if all(k in models for k in ["text", "audio", "image"]):
         try:
-            if os.path.exists(model_path):
-                models[model_name] = joblib.load(model_path)
-                logger.info(f"Loaded {model_name} model: {model_path}")
+            if os.path.exists("models/ensemble_model.joblib"):
+                logger.info("Loading ensemble model from file...")
+                models["ensemble"] = joblib.load("models/ensemble_model.joblib")
             else:
-                logger.warning(f"Model file {model_path} not found")
+                logger.warning("Ensemble model file not found, training new model...")
+                models["ensemble"] = train_ensemble_model(models)
+                joblib.dump(models["ensemble"], "models/ensemble_model.joblib")
         except Exception as e:
-            logger.error(f"Failed to load {model_name} model: {e}")
+            logger.error(f"Failed to load ensemble model: {e}")
+            logger.info("Training new ensemble model instead...")
+            models["ensemble"] = train_ensemble_model(models)
+    
     return models
 # Enhanced synthetic text data creation with more realistic patterns and larger dataset
 def create_synthetic_text_data(target_dir):
