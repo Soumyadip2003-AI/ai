@@ -173,6 +173,14 @@ nltk.download('wordnet', quiet=True)
 nltk.download('vader_lexicon', quiet=True)
 
 # Function to download datasets
+def train_audio_model():
+    """
+    Train a basic audio classification model
+    Returns:
+        RandomForestClassifier: Trained model for audio classification
+    """
+    return RandomForestClassifier(n_estimators=100, random_state=42)
+
 def train_image_model():
     """
     Train a basic image classification model
@@ -210,32 +218,39 @@ def load_models():
     models = {}
     os.makedirs("models", exist_ok=True)
     
+    # Text model
     try:
         if os.path.exists("models/text_model.joblib"):
+            logger.info("Loading text model from file...")
             models["text"] = joblib.load("models/text_model.joblib")
         else:
-            logger.warning("Text model file not found, initializing new model...")
+            logger.warning("Text model file not found, training new model...")
             models["text"] = TextClassifier(model_type='ensemble', use_bert=bert_available)
+            logger.info("Created new text model with default configuration")
             joblib.dump(models["text"], "models/text_model.joblib")
     except Exception as e:
         logger.error(f"Failed to load text model: {e}")
-        # Create a new text model as fallback
+        logger.info("Creating new text model instead...")
         models["text"] = TextClassifier(model_type='ensemble', use_bert=bert_available)
     
-    # Similar pattern for other models
+    # Audio model
     try:
         if os.path.exists("models/audio_model.joblib"):
+            logger.info("Loading audio model from file...")
             models["audio"] = joblib.load("models/audio_model.joblib")
         else:
-            logger.warning("Audio model file not found, initializing new model...")
-            models["audio"] = RandomForestClassifier(n_estimators=100, random_state=42)
+            logger.warning("Audio model file not found, training new model...")
+            models["audio"] = train_audio_model()
             joblib.dump(models["audio"], "models/audio_model.joblib")
     except Exception as e:
         logger.error(f"Failed to load audio model: {e}")
-        models["audio"] = RandomForestClassifier(n_estimators=100, random_state=42)
+        logger.info("Training new audio model instead...")
+        models["audio"] = train_audio_model()
     
+    # Image model
     try:
         if os.path.exists("models/image_model.joblib"):
+            logger.info("Loading image model from file...")
             models["image"] = joblib.load("models/image_model.joblib")
         else:
             logger.warning("Image model file not found, training new model...")
@@ -243,19 +258,23 @@ def load_models():
             joblib.dump(models["image"], "models/image_model.joblib")
     except Exception as e:
         logger.error(f"Failed to load image model: {e}")
+        logger.info("Training new image model instead...")
         models["image"] = train_image_model()
     
-    # Optional: Ensemble model
-    try:
-        if os.path.exists("models/ensemble_model.joblib"):
-            models["ensemble"] = joblib.load("models/ensemble_model.joblib")
-        else:
-            logger.warning("Ensemble model file not found, training new model...")
+    # Ensemble model - only create if all other models are available
+    if all(k in models for k in ["text", "audio", "image"]):
+        try:
+            if os.path.exists("models/ensemble_model.joblib"):
+                logger.info("Loading ensemble model from file...")
+                models["ensemble"] = joblib.load("models/ensemble_model.joblib")
+            else:
+                logger.warning("Ensemble model file not found, training new model...")
+                models["ensemble"] = train_ensemble_model(models)
+                joblib.dump(models["ensemble"], "models/ensemble_model.joblib")
+        except Exception as e:
+            logger.error(f"Failed to load ensemble model: {e}")
+            logger.info("Training new ensemble model instead...")
             models["ensemble"] = train_ensemble_model(models)
-            joblib.dump(models["ensemble"], "models/ensemble_model.joblib")
-    except Exception as e:
-        logger.error(f"Failed to load ensemble model: {e}")
-        models["ensemble"] = train_ensemble_model(models)
     
     return models
 # Enhanced synthetic text data creation with more realistic patterns and larger dataset
