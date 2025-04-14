@@ -58,7 +58,7 @@ st.markdown("""
         border-radius: 0.5rem;
     }
     .alert {
-        background-color: #FFEBEE;
+        background-color: #faebff;
         color: #C62828;
         padding: 1rem;
         border-radius: 0.5rem;
