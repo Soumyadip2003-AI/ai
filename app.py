@@ -345,7 +345,7 @@ def plot_explanation(explanation):
     # Highlight positive and negative contributions
     for i, weight in enumerate(weights):
         if weight > 0:
-            ax.get_children()[i].set_color('green')
+            ax.get_children()[i].set_color('orange')
         else:
             ax.get_children()[i].set_color('red')
     
@@ -455,7 +455,7 @@ def main():
                     
                     # Plot horizontal bar chart
                     fig, ax = plt.subplots(figsize=(10, 5))
-                    colors = ['#FF9999' if w > 0 else '#99CCFF' for w in weights]
+                    colors = ['#FF9999' if w > 0 else '#b899ff' for w in weights]
                     y_pos = np.arange(len(words))
                     ax.barh(y_pos, weights, color=colors)
                     ax.set_yticks(y_pos)
